@@ -64,6 +64,7 @@ AppImage detection scans:
 - `~/Applications`
 - `~/.local/bin`
 - `~/Downloads`
+  
 =======
+
 UninstallHub is a native GTK4/Adwaita Linux app that makes uninstalling APT, Flatpak, Snap, and AppImage apps easier from one clean interface.
->>>>>>> 72f35d20256639f00e4cad988645f37ea7ed7466
