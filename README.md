@@ -1,5 +1,4 @@
 # UninstallHub
-<<<<<<< HEAD
 
 A simple Adwaita GTK app for Ubuntu/Linux that lists apps installed from APT, Flatpak, Snap, and AppImage files, shows application icons where available, then uninstalls them through the correct backend.
 
