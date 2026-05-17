@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=UninstallHub
+Comment=Uninstall Linux apps from APT, Flatpak, Snap, and AppImage
+Exec=UNINSTALLHUB_EXEC
+Icon=io.github.uninstallhub.UninstallHub
+Terminal=false
+Categories=System;Utility;PackageManager;
+StartupNotify=true
