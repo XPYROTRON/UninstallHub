@@ -9,6 +9,19 @@ import subprocess
 from typing import Iterable
 
 
+SOURCE_LABELS = {
+    "apt": "APT / dpkg",
+    "flatpak": "Flatpak",
+    "snap": "Snap",
+    "appimage": "AppImage",
+    "pipx": "pipx",
+    "npm": "npm (global)",
+    "cargo": "cargo install",
+    "homebrew": "Homebrew (Linuxbrew)",
+    "manual": "Manual local .desktop entries",
+}
+
+
 @dataclass(frozen=True)
 class InstalledApp:
     name: str
@@ -106,7 +119,7 @@ def _icon_from_desktop(path: Path | None) -> str:
 
 
 def resolve_icon(app_id: str, name: str, source: str, path: str = "") -> str:
-    if source in {"APT", "Flatpak", "Snap", "Manual Desktop", "pipx", "npm", "cargo", "Homebrew", "AppImage", "deb"}:
+    if source in set(SOURCE_LABELS.values()) | {"deb"}:
         icon = _icon_from_desktop(_find_desktop_for_app(app_id, name, source))
         if icon:
             return icon
@@ -133,8 +146,9 @@ def scan_apt() -> list[InstalledApp]:
             continue
         if pkg.startswith(("lib", "gir1.2-", "python3-", "linux-", "fonts-")):
             continue
-        icon = resolve_icon(pkg, pkg, "APT")
-        apps.append(InstalledApp(name=pkg, app_id=pkg, source="APT", version=version, detail="Debian/Ubuntu package", icon=icon))
+        source = SOURCE_LABELS["apt"]
+        icon = resolve_icon(pkg, pkg, source)
+        apps.append(InstalledApp(name=pkg, app_id=pkg, source=source, version=version, detail="Debian/Ubuntu package", icon=icon))
     return apps
 
 
@@ -147,7 +161,8 @@ def scan_flatpak() -> list[InstalledApp]:
         if len(parts) >= 2:
             name, app_id = parts[0], parts[1]
             version = parts[2] if len(parts) > 2 else ""
-            apps.append(InstalledApp(name=name, app_id=app_id, source="Flatpak", version=version, detail=app_id, icon=resolve_icon(app_id, name, "Flatpak")))
+            source = SOURCE_LABELS["flatpak"]
+            apps.append(InstalledApp(name=name, app_id=app_id, source=source, version=version, detail=app_id, icon=resolve_icon(app_id, name, source)))
     return apps
 
 
@@ -159,7 +174,8 @@ def scan_snap() -> list[InstalledApp]:
         parts = line.split()
         if len(parts) >= 2:
             name, version = parts[0], parts[1]
-            apps.append(InstalledApp(name=name, app_id=name, source="Snap", version=version, detail="Snap package", icon=resolve_icon(name, name, "Snap")))
+            source = SOURCE_LABELS["snap"]
+            apps.append(InstalledApp(name=name, app_id=name, source=source, version=version, detail="Snap package", icon=resolve_icon(name, name, source)))
     return apps
 
 
@@ -175,7 +191,8 @@ def scan_appimages() -> list[InstalledApp]:
             if real in seen:
                 continue
             seen.add(real)
-            apps.append(InstalledApp(name=path.stem, app_id=path.name, source="AppImage", detail=str(path), path=str(path), icon=resolve_icon(path.name, path.stem, "AppImage", str(path))))
+            source = SOURCE_LABELS["appimage"]
+            apps.append(InstalledApp(name=path.stem, app_id=path.name, source=source, detail=str(path), path=str(path), icon=resolve_icon(path.name, path.stem, source, str(path))))
     return apps
 
 
@@ -204,13 +221,13 @@ def _scan_json_apps(cmd: list[str], source: str, key_name: str = "name", key_ver
 def scan_pipx() -> list[InstalledApp]:
     if not command_exists("pipx"):
         return []
-    return _scan_json_apps(["pipx", "list", "--json"], "pipx", key_name="package", key_version="package_version")
+    return _scan_json_apps(["pipx", "list", "--json"], SOURCE_LABELS["pipx"], key_name="package", key_version="package_version")
 
 
 def scan_npm_global() -> list[InstalledApp]:
     if not command_exists("npm"):
         return []
-    return _scan_json_apps(["npm", "ls", "-g", "--json", "--depth=0"], "npm", key_name="name", key_version="version")
+    return _scan_json_apps(["npm", "ls", "-g", "--json", "--depth=0"], SOURCE_LABELS["npm"], key_name="name", key_version="version")
 
 
 def scan_cargo() -> list[InstalledApp]:
@@ -225,8 +242,9 @@ def scan_cargo() -> list[InstalledApp]:
             name, version = name_version.rsplit(" v", 1)
         else:
             name, version = name_version, ""
-        icon = resolve_icon(name, name, "cargo")
-        apps.append(InstalledApp(name=name, app_id=name, source="cargo", version=version, detail="Cargo install", icon=icon))
+        source = SOURCE_LABELS["cargo"]
+        icon = resolve_icon(name, name, source)
+        apps.append(InstalledApp(name=name, app_id=name, source=source, version=version, detail="Cargo install", icon=icon))
     return apps
 
 
@@ -240,8 +258,9 @@ def scan_homebrew() -> list[InstalledApp]:
             continue
         parts = line.split()
         name, versions = parts[0], " ".join(parts[1:])
-        icon = resolve_icon(name, name, "Homebrew")
-        apps.append(InstalledApp(name=name, app_id=name, source="Homebrew", version=versions, detail="Homebrew formula", icon=icon))
+        source = SOURCE_LABELS["homebrew"]
+        icon = resolve_icon(name, name, source)
+        apps.append(InstalledApp(name=name, app_id=name, source=source, version=versions, detail="Homebrew formula", icon=icon))
     return apps
 
 
@@ -253,7 +272,7 @@ def scan_manual_desktop() -> list[InstalledApp]:
         name = _read_desktop_value(path, "Name") or path.stem
         icon = _read_desktop_value(path, "Icon")
         exec_line = _read_desktop_value(path, "Exec")
-        apps.append(InstalledApp(name=name, app_id=path.name, source="Manual Desktop", detail=exec_line or str(path), path=str(path), icon=icon))
+        apps.append(InstalledApp(name=name, app_id=path.name, source=SOURCE_LABELS["manual"], detail=exec_line or str(path), path=str(path), icon=icon))
     return apps
 
 
@@ -266,23 +285,23 @@ def scan_all() -> list[InstalledApp]:
 
 
 def uninstall_command(app: InstalledApp) -> list[str]:
-    if app.source == "APT":
+    if app.source == SOURCE_LABELS["apt"]:
         return ["pkexec", "apt", "remove", app.app_id]
-    if app.source == "Flatpak":
+    if app.source == SOURCE_LABELS["flatpak"]:
         return ["flatpak", "uninstall", app.app_id]
-    if app.source == "Snap":
+    if app.source == SOURCE_LABELS["snap"]:
         return ["pkexec", "snap", "remove", app.app_id]
-    if app.source == "AppImage":
+    if app.source == SOURCE_LABELS["appimage"]:
         return ["rm", "--", app.path]
-    if app.source == "pipx":
+    if app.source == SOURCE_LABELS["pipx"]:
         return ["pipx", "uninstall", app.app_id]
-    if app.source == "npm":
+    if app.source == SOURCE_LABELS["npm"]:
         return ["npm", "uninstall", "-g", app.app_id]
-    if app.source == "cargo":
+    if app.source == SOURCE_LABELS["cargo"]:
         return ["cargo", "uninstall", app.app_id]
-    if app.source == "Homebrew":
+    if app.source == SOURCE_LABELS["homebrew"]:
         return ["brew", "uninstall", app.app_id]
-    if app.source == "Manual Desktop":
+    if app.source == SOURCE_LABELS["manual"]:
         return ["rm", "--", app.path]
     raise ValueError(f"Unsupported source: {app.source}")
 

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=UninstallHub
-Comment=Uninstall Linux apps from APT, Flatpak, Snap, and AppImage
+Comment=Uninstall Linux apps from APT/dpkg, Flatpak, Snap, AppImage, pipx, npm, cargo, Homebrew, and local desktop entries
 Exec=UNINSTALLHUB_EXEC
 Icon=io.github.uninstallhub.UninstallHub
 Terminal=false

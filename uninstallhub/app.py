@@ -8,7 +8,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, GLib, Gtk
 
-from .backends import InstalledApp, scan_all, uninstall_app, uninstall_command
+from .backends import SOURCE_LABELS, InstalledApp, scan_all, uninstall_app, uninstall_command
 
 
 class AppRow(Gtk.ListBoxRow):
@@ -61,10 +61,10 @@ class AppRow(Gtk.ListBoxRow):
     @staticmethod
     def _fallback_icon_name(source: str) -> str:
         return {
-            "APT": "application-x-executable",
-            "Flatpak": "package-x-generic",
-            "Snap": "package-x-generic",
-            "AppImage": "application-x-executable",
+            SOURCE_LABELS["apt"]: "application-x-executable",
+            SOURCE_LABELS["flatpak"]: "package-x-generic",
+            SOURCE_LABELS["snap"]: "package-x-generic",
+            SOURCE_LABELS["appimage"]: "application-x-executable",
         }.get(source, "application-x-executable")
 
 
@@ -162,15 +162,28 @@ class UninstallHubWindow(Adw.ApplicationWindow):
             nxt = child.get_next_sibling()
             self.filter_flow.remove(child)
             child = nxt
-        sources = sorted({a.source for a in self.apps})
+        discovered = {a.source for a in self.apps}
+        sources = [
+            SOURCE_LABELS["apt"],
+            SOURCE_LABELS["flatpak"],
+            SOURCE_LABELS["snap"],
+            SOURCE_LABELS["appimage"],
+            SOURCE_LABELS["pipx"],
+            SOURCE_LABELS["npm"],
+            SOURCE_LABELS["cargo"],
+            SOURCE_LABELS["homebrew"],
+            SOURCE_LABELS["manual"],
+        ]
         if not self.visible_sources:
             self.visible_sources = set(sources)
         else:
             self.visible_sources &= set(sources)
-            self.visible_sources |= set(s for s in sources if s in self.visible_sources)
         for source in sources:
             chip = Gtk.CheckButton(label=source)
             chip.set_active(source in self.visible_sources)
+            chip.set_sensitive(source in discovered)
+            if source not in discovered:
+                chip.set_tooltip_text("No installed apps found for this source")
             chip.connect("toggled", self.on_source_toggled, source)
             self.filter_flow.insert(chip, -1)
 
