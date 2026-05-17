@@ -100,11 +100,14 @@ class UninstallHubWindow(Adw.ApplicationWindow):
         main.append(self.search)
 
         self.visible_sources: set[str] = set()
+        self.filter_expander = Gtk.Expander(label="Filter repositories")
+        self.filter_expander.set_expanded(False)
         self.filter_flow = Gtk.FlowBox()
         self.filter_flow.set_selection_mode(Gtk.SelectionMode.NONE)
         self.filter_flow.set_row_spacing(6)
         self.filter_flow.set_column_spacing(6)
-        main.append(self.filter_flow)
+        self.filter_expander.set_child(self.filter_flow)
+        main.append(self.filter_expander)
 
         self.progress = Gtk.ProgressBar()
         self.progress.set_show_text(True)
@@ -204,6 +207,7 @@ class UninstallHubWindow(Adw.ApplicationWindow):
             if query and query not in haystack:
                 continue
             self.listbox.append(AppRow(app))
+
 
     def on_row_activated(self, _box, row: AppRow):
         app = row.app
