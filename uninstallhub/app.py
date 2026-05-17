@@ -8,7 +8,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, GLib, Gtk
 
-from .backends import InstalledApp, scan_all, uninstall_app, uninstall_command
+from .backends import SOURCE_LABELS, InstalledApp, scan_all, uninstall_app, uninstall_command
 
 
 class AppRow(Gtk.ListBoxRow):
@@ -99,6 +99,16 @@ class UninstallHubWindow(Adw.ApplicationWindow):
         self.search.connect("search-changed", lambda *_: self.populate())
         main.append(self.search)
 
+        self.visible_sources: set[str] = set()
+        self.filter_expander = Gtk.Expander(label="Filter repositories")
+        self.filter_expander.set_expanded(False)
+        self.filter_flow = Gtk.FlowBox()
+        self.filter_flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.filter_flow.set_row_spacing(6)
+        self.filter_flow.set_column_spacing(6)
+        self.filter_expander.set_child(self.filter_flow)
+        main.append(self.filter_expander)
+
         self.progress = Gtk.ProgressBar()
         self.progress.set_show_text(True)
         self.progress.set_text("Ready")
@@ -138,6 +148,7 @@ class UninstallHubWindow(Adw.ApplicationWindow):
         self.apps = apps
         self.refresh_button.set_sensitive(True)
         self.populate()
+        self.update_source_filters()
         self.status.set_label(f"Found {len(apps)} removable items.")
         return False
 
@@ -148,10 +159,50 @@ class UninstallHubWindow(Adw.ApplicationWindow):
             self.listbox.remove(child)
             child = next_child
 
+    def update_source_filters(self):
+        child = self.filter_flow.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            self.filter_flow.remove(child)
+            child = nxt
+        discovered = {a.source for a in self.apps}
+        sources = [
+            SOURCE_LABELS["apt"],
+            SOURCE_LABELS["flatpak"],
+            SOURCE_LABELS["snap"],
+            SOURCE_LABELS["appimage"],
+            SOURCE_LABELS["pipx"],
+            SOURCE_LABELS["npm"],
+            SOURCE_LABELS["cargo"],
+            SOURCE_LABELS["homebrew"],
+            SOURCE_LABELS["manual"],
+        ]
+        if not self.visible_sources:
+            self.visible_sources = set(sources)
+        else:
+            self.visible_sources &= set(sources)
+        for source in sources:
+            chip = Gtk.CheckButton(label=source)
+            chip.set_active(source in self.visible_sources)
+            chip.set_sensitive(source in discovered)
+            if source not in discovered:
+                chip.set_tooltip_text("No installed apps found for this source")
+            chip.connect("toggled", self.on_source_toggled, source)
+            self.filter_flow.insert(chip, -1)
+
+    def on_source_toggled(self, button: Gtk.CheckButton, source: str):
+        if button.get_active():
+            self.visible_sources.add(source)
+        else:
+            self.visible_sources.discard(source)
+        self.populate()
+
     def populate(self):
         query = self.search.get_text().strip().lower()
         self.clear_list()
         for app in self.apps:
+            if self.visible_sources and app.source not in self.visible_sources:
+                continue
             haystack = f"{app.name} {app.app_id} {app.source} {app.detail}".lower()
             if query and query not in haystack:
                 continue
