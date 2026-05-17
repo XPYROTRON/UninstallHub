@@ -1,0 +1,35 @@
+name: uninstallhub
+base: core24
+version: '0.2.0'
+summary: Unified Linux app uninstaller
+license: MIT
+
+description: |
+  UninstallHub is a GTK4/Libadwaita app for uninstalling software from
+  multiple Linux package sources in one place.
+
+grade: stable
+confinement: classic
+
+apps:
+  uninstallhub:
+    command: bin/uninstallhub
+    desktop: share/applications/io.github.uninstallhub.UninstallHub.desktop
+
+parts:
+  uninstallhub:
+    plugin: dump
+    source: ../..
+    organize:
+      uninstallhub/*: share/uninstallhub/uninstallhub/
+      share/*: share/
+      assets/io.github.uninstallhub.UninstallHub.svg: share/icons/hicolor/scalable/apps/io.github.uninstallhub.UninstallHub.svg
+      assets/io.github.uninstallhub.UninstallHub-symbolic.svg: share/icons/hicolor/scalable/apps/io.github.uninstallhub.UninstallHub-symbolic.svg
+    override-build: |
+      craftctl default
+      mkdir -p "$CRAFT_PART_INSTALL/bin"
+      cat > "$CRAFT_PART_INSTALL/bin/uninstallhub" <<'LAUNCHER'
+      #!/usr/bin/env bash
+      exec python3 -m uninstallhub "$@"
+      LAUNCHER
+      chmod +x "$CRAFT_PART_INSTALL/bin/uninstallhub"

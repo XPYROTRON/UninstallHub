@@ -41,3 +41,31 @@ UninstallHub is a GTK4/Libadwaita (Wayland-native) app for uninstalling software
 ```
 
 The package will be created in `dist/` and can be installed with `sudo apt install ./dist/uninstallhub_0.2.0_all.deb`.
+
+## Flatpak / Flathub packaging
+
+Flatpak manifest is available at:
+
+- `packaging/flatpak/io.github.uninstallhub.UninstallHub.json`
+
+Build locally:
+
+```bash
+flatpak-builder --force-clean build-dir packaging/flatpak/io.github.uninstallhub.UninstallHub.json
+```
+
+To publish on Flathub, submit this app manifest and metadata to a Flathub app repo and follow Flathub review requirements.
+
+## Snap packaging
+
+Snap recipe is available at:
+
+- `packaging/snap/snapcraft.yaml`
+
+Build locally:
+
+```bash
+snapcraft
+```
+
+The snap is configured for `classic` confinement because uninstall functionality requires broad system access.

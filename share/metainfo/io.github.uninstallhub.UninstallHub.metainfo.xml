@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.uninstallhub.UninstallHub</id>
+  <name>UninstallHub</name>
+  <summary>Uninstall software from many Linux sources in one place</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.uninstallhub">
+    <name>UninstallHub</name>
+  </developer>
+  <launchable type="desktop-id">io.github.uninstallhub.UninstallHub.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <description>
+    <p>
+      UninstallHub is a GTK4 and Libadwaita app for discovering and uninstalling
+      software installed from multiple Linux package sources.
+    </p>
+    <ul>
+      <li>Scan removables across APT, Flatpak, Snap, AppImage, pipx, npm, cargo, and Homebrew</li>
+      <li>Filter by installation source and search quickly</li>
+      <li>Preview removal commands and run uninstalls from one UI</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/uninstallhub/UninstallHub</url>
+  <releases>
+    <release version="0.2.0" date="2026-05-17"/>
+  </releases>
+</component>

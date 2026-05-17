@@ -1,0 +1,41 @@
+{
+  "app-id": "io.github.uninstallhub.UninstallHub",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "48",
+  "sdk": "org.gnome.Sdk",
+  "command": "uninstallhub",
+  "finish-args": [
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--share=ipc",
+    "--device=dri",
+    "--filesystem=home"
+  ],
+  "cleanup": [
+    "*.pyc",
+    "__pycache__/"
+  ],
+  "modules": [
+    {
+      "name": "uninstallhub",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -D uninstallhub/__main__.py /app/share/uninstallhub/uninstallhub/__main__.py",
+        "install -D uninstallhub/app.py /app/share/uninstallhub/uninstallhub/app.py",
+        "install -D uninstallhub/backends.py /app/share/uninstallhub/uninstallhub/backends.py",
+        "install -D share/applications/io.github.uninstallhub.UninstallHub.desktop /app/share/applications/io.github.uninstallhub.UninstallHub.desktop",
+        "install -D assets/io.github.uninstallhub.UninstallHub.svg /app/share/icons/hicolor/scalable/apps/io.github.uninstallhub.UninstallHub.svg",
+        "install -D assets/io.github.uninstallhub.UninstallHub-symbolic.svg /app/share/icons/hicolor/scalable/apps/io.github.uninstallhub.UninstallHub-symbolic.svg",
+        "install -D share/metainfo/io.github.uninstallhub.UninstallHub.metainfo.xml /app/share/metainfo/io.github.uninstallhub.UninstallHub.metainfo.xml",
+        "printf '#!/usr/bin/env sh\nexec python3 -m uninstallhub "$@"\n' > /app/bin/uninstallhub",
+        "chmod +x /app/bin/uninstallhub"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../.."
+        }
+      ]
+    }
+  ]
+}
