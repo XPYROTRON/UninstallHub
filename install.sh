@@ -8,7 +8,8 @@ ICON_DIR="$HOME/.local/share/icons/hicolor/scalable/apps"
 mkdir -p "$INSTALL_DIR" "$DESKTOP_DIR" "$ICON_DIR"
 rsync -a --delete --exclude='.git' "$APP_DIR/" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/run.sh"
-cp "$INSTALL_DIR/assets/uninstallhub.svg" "$ICON_DIR/io.github.uninstallhub.UninstallHub.svg"
+cp "$INSTALL_DIR/assets/io.github.uninstallhub.UninstallHub.svg" "$ICON_DIR/io.github.uninstallhub.UninstallHub.svg"
+cp "$INSTALL_DIR/assets/io.github.uninstallhub.UninstallHub-symbolic.svg" "$ICON_DIR/io.github.uninstallhub.UninstallHub-symbolic.svg"
 sed "s|UNINSTALLHUB_EXEC|$INSTALL_DIR/run.sh|" \
   "$INSTALL_DIR/share/applications/io.github.uninstallhub.UninstallHub.desktop" \
   > "$DESKTOP_DIR/io.github.uninstallhub.UninstallHub.desktop"

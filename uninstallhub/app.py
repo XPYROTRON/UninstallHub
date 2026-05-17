@@ -6,7 +6,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, GObject, Gtk
+from gi.repository import Adw, GLib, Gtk
 
 from .backends import InstalledApp, scan_all, uninstall_app, uninstall_command
 
@@ -99,6 +99,19 @@ class UninstallHubWindow(Adw.ApplicationWindow):
         self.search.connect("search-changed", lambda *_: self.populate())
         main.append(self.search)
 
+        self.visible_sources: set[str] = set()
+        self.filter_flow = Gtk.FlowBox()
+        self.filter_flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.filter_flow.set_row_spacing(6)
+        self.filter_flow.set_column_spacing(6)
+        main.append(self.filter_flow)
+
+        self.progress = Gtk.ProgressBar()
+        self.progress.set_show_text(True)
+        self.progress.set_text("Ready")
+        self.progress.set_visible(False)
+        main.append(self.progress)
+
         self.status = Gtk.Label(label="Scanning…", xalign=0)
         self.status.add_css_class("dim-label")
         main.append(self.status)
@@ -132,7 +145,8 @@ class UninstallHubWindow(Adw.ApplicationWindow):
         self.apps = apps
         self.refresh_button.set_sensitive(True)
         self.populate()
-        self.status.set_label(f"Found {len(apps)} removable items from APT, Flatpak, Snap, and AppImage.")
+        self.update_source_filters()
+        self.status.set_label(f"Found {len(apps)} removable items.")
         return False
 
     def clear_list(self):
@@ -142,10 +156,37 @@ class UninstallHubWindow(Adw.ApplicationWindow):
             self.listbox.remove(child)
             child = next_child
 
+    def update_source_filters(self):
+        child = self.filter_flow.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            self.filter_flow.remove(child)
+            child = nxt
+        sources = sorted({a.source for a in self.apps})
+        if not self.visible_sources:
+            self.visible_sources = set(sources)
+        else:
+            self.visible_sources &= set(sources)
+            self.visible_sources |= set(s for s in sources if s in self.visible_sources)
+        for source in sources:
+            chip = Gtk.CheckButton(label=source)
+            chip.set_active(source in self.visible_sources)
+            chip.connect("toggled", self.on_source_toggled, source)
+            self.filter_flow.insert(chip, -1)
+
+    def on_source_toggled(self, button: Gtk.CheckButton, source: str):
+        if button.get_active():
+            self.visible_sources.add(source)
+        else:
+            self.visible_sources.discard(source)
+        self.populate()
+
     def populate(self):
         query = self.search.get_text().strip().lower()
         self.clear_list()
         for app in self.apps:
+            if self.visible_sources and app.source not in self.visible_sources:
+                continue
             haystack = f"{app.name} {app.app_id} {app.source} {app.detail}".lower()
             if query and query not in haystack:
                 continue
@@ -172,15 +213,22 @@ class UninstallHubWindow(Adw.ApplicationWindow):
             return
         self.status.set_label(f"Uninstalling {app.name}…")
         self.refresh_button.set_sensitive(False)
+        self.progress.set_visible(True)
+        self.progress.set_fraction(0.1)
+        self.progress.set_text(f"Uninstalling {app.name}")
+        pulse_id = GLib.timeout_add(120, self.progress.pulse)
 
         def worker():
             ok, output = uninstall_app(app)
-            GLib.idle_add(self.finish_uninstall, ok, output)
+            GLib.idle_add(self.finish_uninstall, ok, output, pulse_id)
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def finish_uninstall(self, ok: bool, output: str):
+    def finish_uninstall(self, ok: bool, output: str, pulse_id: int):
+        GLib.source_remove(pulse_id)
         self.refresh_button.set_sensitive(True)
+        self.progress.set_fraction(1.0 if ok else 0.0)
+        self.progress.set_text("Done" if ok else "Failed")
         self.toast("Uninstalled successfully" if ok else "Uninstall failed")
         self.status.set_label(output[:500])
         self.refresh()
